@@ -55,5 +55,16 @@ zillow-backend
 - The API provides endpoints for managing properties and images. Refer to the individual route files for detailed endpoint information.
 - Ensure that you have the necessary permissions and configurations set up for B2 storage to handle image uploads.
 
+## Paystack Subscription Support
+- `POST /api/paystack/verify-subscription` verifies a Paystack reference, marks the matching user subscription as active, and stores the expiry in Firestore.
+- `POST /api/paystack/webhook` handles Paystack webhook events for subscription creation, renewal, and failures.
+
+### Required Environment Variables
+- `PAYSTACK_SECRET_KEY`
+- `PAYSTACK_PLAN_CODE` if you want to override the default monthly plan code
+- `PAYSTACK_SUBSCRIPTION_MONTHS` if you want to change the default 1-month duration
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_SERVICE_ACCOUNT_JSON` or application default credentials for Firebase Admin access
+
 ## Contributing
 Contributions are welcome! Please submit a pull request or open an issue for any enhancements or bug fixes.

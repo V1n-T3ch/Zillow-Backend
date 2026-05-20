@@ -1,15 +1,24 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
 const imageRoutes = require('./routes/imageRoutes');
+const paystackRoutes = require('./routes/paystackRoutes');
 
 const app = express();
 
 // Increase payload limits for large video uploads
 app.use(cors());
-app.use(express.json({ limit: '100mb' }));
+app.use(express.json({
+    limit: '100mb',
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 app.use('/api/images', imageRoutes);
+app.use('/api/paystack', paystackRoutes);
 
 app.use((err, req, res, next) => {
     console.error('Error details:', err);
@@ -19,7 +28,7 @@ app.use((err, req, res, next) => {
         if (err.code === 'LIMIT_FILE_SIZE') {
             return res.status(400).json({ 
                 status: 'error', 
-                message: 'File too large. Maximum size is 100MB.' 
+                message: 'File too large. Maximum size is 1GB.' 
             });
         }
     }
