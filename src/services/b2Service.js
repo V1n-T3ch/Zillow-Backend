@@ -1,5 +1,6 @@
 const B2 = require('backblaze-b2');
 const fs = require('fs');
+const path = require('path');
 const b2Config = require('../config/b2Config');
 
 // Add logging to debug environment variables
@@ -44,6 +45,10 @@ async function uploadFile(file) {
             fileName,
             data: fileData,
             mime: file.mimetype,
+            info: {
+                'x-upload-source': 'direct',
+                'b2-cache-control': 'public, max-age=86400'
+            }
         });
 
         console.log('Upload response:', uploadResponse.data);
@@ -71,4 +76,45 @@ async function uploadFile(file) {
     }
 }
 
-module.exports = { uploadFile };
+async function uploadLocalFile(options) {
+    const {
+        localPath,
+        originalName,
+        mimeType,
+        prefix = 'media',
+        info = {}
+    } = options;
+
+    if (!localPath || !fs.existsSync(localPath)) {
+        throw new Error('Local file not found for B2 upload');
+    }
+
+    const ext = path.extname(localPath) || path.extname(originalName || '') || '';
+    const safeBaseName = path.basename(originalName || 'file', path.extname(originalName || 'file'))
+        .replace(/[^a-zA-Z0-9_-]/g, '_');
+    const fileName = `${prefix}/${Date.now()}_${safeBaseName}${ext}`;
+
+    await b2.authorize();
+
+    const uploadUrlResponse = await b2.getUploadUrl({ bucketId: b2Config.bucketId });
+    const { uploadUrl, authorizationToken } = uploadUrlResponse.data;
+
+    const fileData = fs.readFileSync(localPath);
+
+    await b2.uploadFile({
+        uploadUrl,
+        uploadAuthToken: authorizationToken,
+        fileName,
+        data: fileData,
+        mime: mimeType,
+        info: {
+            ...info,
+            'x-optimized': 'true',
+            'b2-cache-control': 'public, max-age=31536000, immutable'
+        }
+    });
+
+    return `${b2Config.downloadUrl}/${b2Config.bucketName}/${fileName}`;
+}
+
+module.exports = { uploadFile, uploadLocalFile };
